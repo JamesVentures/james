@@ -23,11 +23,11 @@ James is described by two smart contracts:
 1. `James.sol` - Responsible for managing membership & voting rights, proposal submissions, voting, and processing proposals based on the outcomes of the votes.
 2. `GuildBank.sol` - Responsible for managing Guild assets.
 
-James has a native asset called `shares`. Shares are minted and assigned when a new member is accepted into the Guild and provide voting rights on new membership proposals. They are non-transferrable, but can be *irreversibly* redeemed at any time to collect a proportional share of all ETH held by the Guild in the Guild Bank.
+James has a native asset called `bonds`. Shares are minted and assigned when a new member is accepted into the Guild and provide voting rights on new membership proposals. They are non-transferrable, but can be *irreversibly* redeemed at any time to collect a proportional share of all ETH held by the Guild in the Guild Bank.
 
-James operates through the submission, voting on, and processing of a series of membership proposals. To combat spam, new membership proposals can only be submitted by existing members and require a 10 ETH deposit. Applicants who wish to join must find a Guild member to champion their proposal and have that member call `submitProposal` on their behalf. The membership proposal includes the number of shares the applicant is requesting, and either the amount of ETH the applicant is offering as tribute or a pledge that the applicant will complete some work that benefits the Guild.
+James operates through the submission, voting on, and processing of a series of membership proposals. To combat spam, new membership proposals can only be submitted by existing members and require a 10 ETH deposit. Applicants who wish to join must find a Guild member to champion their proposal and have that member call `submitProposal` on their behalf. The membership proposal includes the number of bonds the applicant is requesting, and either the amount of ETH the applicant is offering as tribute or a pledge that the applicant will complete some work that benefits the Guild.
 
-All ETH offered as tribute is held in escrow by the `James.sol` contract until the proposal vote is completed and processed. If a proposal vote passes, the applicant becomes a member, the shares requested are minted and assigned to them, and their tribute ETH is deposited into the `GuildBank.sol` contract. If a proposal vote is rejected, all tribute ETH is returned to the applicant. In either case, the 10 ETH deposit is returned to the member who submitted the proposal.
+All ETH offered as tribute is held in escrow by the `James.sol` contract until the proposal vote is completed and processed. If a proposal vote passes, the applicant becomes a member, the bonds requested are minted and assigned to them, and their tribute ETH is deposited into the `GuildBank.sol` contract. If a proposal vote is rejected, all tribute ETH is returned to the applicant. In either case, the 10 ETH deposit is returned to the member who submitted the proposal.
 
 Proposals are voted on in the order they are submitted. The *voting period* for each proposal is 7 days. During the voting period, members can vote (only once, no redos) on a proposal by calling `submitVote`. There can be 5 proposals per day, so there can be a maximum of 35 proposals being voted on at any time (staggered by 4.8 hours). Proposal votes are determined by simple majority of votes cast on the proposal, with no quorum requirement.
 
@@ -39,9 +39,9 @@ At the end of the grace period, proposals are processed when anyone calls `proce
 
 By allowing Guild members to ragequit and exit at any time, James protects its members from 51% attacks and from supporting proposals they vehemently oppose.
 
-In the worst case, one or more Guild members who control >50% of the shares could submit a proposal to grant themselves a ridiculous number of new shares, thereby diluting all other members of their claims to the Guild Bank assets and effectively stealing from them. If this were to happen, everyone else would ragequit during the grace period and take their share of the Guild Bank assets with them, and the proposal would have no impact.
+In the worst case, one or more Guild members who control >50% of the bonds could submit a proposal to grant themselves a ridiculous number of new bonds, thereby diluting all other members of their claims to the Guild Bank assets and effectively stealing from them. If this were to happen, everyone else would ragequit during the grace period and take their share of the Guild Bank assets with them, and the proposal would have no impact.
 
-In the more likely case of a contentious vote, those who oppose strongly enough can leave and increase the funding burden on those who choose to stay. Let's say the Guild has 100 outstanding shares and $100M worth of ETH in the Guild Bank. If a project proposal requests 1 newly minted share (~$1M worth), the vote is split 50/50 with 100% voter turnout, and the 50 who voted **No** all ragequit and take their $50M with them, then the remaining members would be diluting themselves twice as much: 1/51 = ~2% vs. 1/101 = ~1%.
+In the more likely case of a contentious vote, those who oppose strongly enough can leave and increase the funding burden on those who choose to stay. Let's say the Guild has 100 outstanding bonds and $100M worth of ETH in the Guild Bank. If a project proposal requests 1 newly minted share (~$1M worth), the vote is split 50/50 with 100% voter turnout, and the 50 who voted **No** all ragequit and take their $50M with them, then the remaining members would be diluting themselves twice as much: 1/51 = ~2% vs. 1/101 = ~1%.
 
 In this fashion, the ragequit mechanism also provides an interesting incentive in favor of Guild cohesion. Guild members are disincentivized from voting **Yes** on proposals that they believe will make other members ragequit. Those who do vote **Yes** on contentious proposals will be forced to additionally dilute themselves proportional to the fraction of Voting Shares that ragequit in response.
 
@@ -77,7 +77,7 @@ Follow this instructions to deploy a new Pool:
 
 1. Edit `buidler.config.js`, setting the values for `INFURA_API_KEY` and `MAINNET_PRIVATE_KEY`.
 2. Make sure you have the right address in `buidler.config.js`'s `networks.mainnet.deployedContracts.james` field.
-3. Run `npx buidler pool-deploy --network mainnet --shares <shares> --tokens <tokens>` with the initial amount of tokens you want to donate to the pool, and how many shares you want in return.
+3. Run `npx buidler pool-deploy --network mainnet --bonds <bonds> --tokens <tokens>` with the initial amount of tokens you want to donate to the pool, and how many bonds you want in return.
 
 ### Interacting with the smart contracts
 
@@ -100,7 +100,7 @@ AVAILABLE TASKS:
   help                          Prints this message
   james-deploy                 Deploys a new instance of the James DAO
   james-process-proposal       Processes a proposal
-  james-ragequit               Ragequits, burning some shares and getting tokens back
+  james-ragequit               Ragequits, burning some bonds and getting tokens back
   james-submit-proposal        Submits a proposal
   james-submit-vote            Submits a vote
   james-update-delegate        Updates your delegate
@@ -122,13 +122,13 @@ You can run `npx buidler help <task>` to get help about each tasks and their par
 $ npx buidler help james-submit-proposal
 Buidler version 1.0.0-beta.7
 
-Usage: buidler [GLOBAL OPTIONS] james-submit-proposal --applicant <STRING> --details <STRING> --shares <STRING> --tribute <STRING>
+Usage: buidler [GLOBAL OPTIONS] james-submit-proposal --applicant <STRING> --details <STRING> --bonds <STRING> --tribute <STRING>
 
 OPTIONS:
 
   --applicant   The address of the applicant
   --details     The proposal's details
-  --shares      The number of shares requested
+  --bonds      The number of bonds requested
   --tribute     The number of token's wei offered as tribute
 
 james-submit-proposal: Submits a proposal
@@ -164,19 +164,19 @@ function below.
 
     // HARD-CODED LIMITS
     // These numbers are quite arbitrary; they are small enough to avoid overflows when doing calculations
-    // with periods or shares, yet big enough to not limit reasonable use cases.
+    // with periods or bonds, yet big enough to not limit reasonable use cases.
     uint256 constant MAX_VOTING_PERIOD_LENGTH = 10**18; // maximum length of voting period
     uint256 constant MAX_GRACE_PERIOD_LENGTH = 10**18; // maximum length of grace period
     uint256 constant MAX_DILUTION_BOUND = 10**18; // maximum dilution bound
-    uint256 constant MAX_NUMBER_OF_SHARES = 10**18; // maximum number of shares that can be minted
+    uint256 constant MAX_NUMBER_OF_SHARES = 10**18; // maximum number of bonds that can be minted
 ```
 
 All deposits and tributes use the singular `approvedToken` set at contract deployment. In our case this will be wETH, and so we use wETH and ETH interchangably in this documentation.
 
 #### Internal Accounting
 ```
-    uint256 public totalShares = 0; // total shares across all members
-    uint256 public totalSharesRequested = 0; // total shares that have been requested in unprocessed proposals
+    uint256 public totalShares = 0; // total bonds across all members
+    uint256 public totalSharesRequested = 0; // total bonds that have been requested in unprocessed proposals
 ```
 
 ##### Proposals
@@ -185,7 +185,7 @@ The `Proposal` struct stores all relevant data for each proposal, and is saved i
     struct Proposal {
         address proposer; // the member who submitted the proposal
         address applicant; // the applicant who wishes to become a member - this key will be used for withdrawals
-        uint256 sharesRequested; // the # of shares the applicant is requesting
+        uint256 bondsRequested; // the # of bonds the applicant is requesting
         uint256 startingPeriod; // the period in which voting can start for this proposal
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
@@ -194,7 +194,7 @@ The `Proposal` struct stores all relevant data for each proposal, and is saved i
         bool aborted; // true only if applicant calls "abort" fn before end of voting period
         uint256 tokenTribute; // amount of tokens offered as tribute
         string details; // proposal details - could be IPFS hash, plaintext, or JSON
-        uint256 maxTotalSharesAtYesVote; // the maximum # of total shares encountered at a yes vote on this proposal
+        uint256 maxTotalSharesAtYesVote; // the maximum # of total bonds encountered at a yes vote on this proposal
         mapping (address => Vote) votesByMember; // the votes on this proposal by each member
     }
 
@@ -207,7 +207,7 @@ The `Member` struct stores all relevant data for each member, and is saved in th
 ```
     struct Member {
         address delegateKey; // the key responsible for submitting proposals and voting - defaults to member address unless updated
-        uint256 shares; // the # of shares assigned to this member
+        uint256 bonds; // the # of bonds assigned to this member
         bool exists; // always true once a member has been created
         uint256 highestIndexYesVote; // highest proposal index # on which the member voted YES
     }
@@ -216,7 +216,7 @@ The `Member` struct stores all relevant data for each member, and is saved in th
     mapping (address => address) public memberAddressByDelegateKey;
 ```
 
-The `exists` field is set to `true` when a member is accepted and remains `true` even if a member redeems 100% of their shares. It is used to prevent overwriting existing members (who may have ragequit all their shares).
+The `exists` field is set to `true` when a member is accepted and remains `true` even if a member redeems 100% of their bonds. It is used to prevent overwriting existing members (who may have ragequit all their bonds).
 
 For additional security, members can optionally change their `delegateKey` (used for submitting and voting on proposals) to a different address by calling `updateDelegateKey`. The `memberAddressByDelegateKey` stores the member's address by the `delegateKey` address.
 
@@ -236,7 +236,7 @@ The Vote enum reflects the possible values of a proposal vote by a member.
 Checks that the `msg.sender` is the address of a member with at least 1 share.
 ```
     modifier onlyMember {
-        require(members[msg.sender].shares > 0, "James::onlyMember - not a member");
+        require(members[msg.sender].bonds > 0, "James::onlyMember - not a member");
         _;
     }
 ```
@@ -246,7 +246,7 @@ Applied only to `ragequit` and `updateDelegateKey`.
 Checks that the `msg.sender` is the `delegateKey` of a member with at least 1 share.
 ```
     modifier onlyDelegate {
-        require(members[memberAddressByDelegateKey[msg.sender]].shares > 0, "James::onlyDelegate - not a delegate");
+        require(members[memberAddressByDelegateKey[msg.sender]].bonds > 0, "James::onlyDelegate - not a delegate");
         _;
     }
 ```
@@ -311,7 +311,7 @@ Applied only to `submitProposal` and `submitVote`.
 
 ### submitProposal
 At any time, members can submit new proposals using their `delegateKey`.
-1. Updates `totalSharesRequested` with the shares requested by the proposal.
+1. Updates `totalSharesRequested` with the bonds requested by the proposal.
 2. Transfers the proposal deposit and tribute ETH to the `James.sol` contract to be held in escrow until the proposal vote is completed and processed.
 4. Calculates the proposal starting period, creates a new proposal, and pushes the proposal to the end of the `proposalQueue`.
 
@@ -319,7 +319,7 @@ At any time, members can submit new proposals using their `delegateKey`.
     function submitProposal(
         address applicant,
         uint256 tokenTribute,
-        uint256 sharesRequested,
+        uint256 bondsRequested,
         string memory details
     )
         public
@@ -327,12 +327,12 @@ At any time, members can submit new proposals using their `delegateKey`.
     {
         require(applicant != address(0), "James::submitProposal - applicant cannot be 0");
 
-        // Make sure we won't run into overflows when doing calculations with shares.
-        // Note that totalShares + totalSharesRequested + sharesRequested is an upper bound
-        // on the number of shares that can exist until this proposal has been processed.
-        require(totalShares.add(totalSharesRequested).add(sharesRequested) <= MAX_NUMBER_OF_SHARES, "James::submitProposal - too many shares requested");
+        // Make sure we won't run into overflows when doing calculations with bonds.
+        // Note that totalShares + totalSharesRequested + bondsRequested is an upper bound
+        // on the number of bonds that can exist until this proposal has been processed.
+        require(totalShares.add(totalSharesRequested).add(bondsRequested) <= MAX_NUMBER_OF_SHARES, "James::submitProposal - too many bonds requested");
 
-        totalSharesRequested = totalSharesRequested.add(sharesRequested);
+        totalSharesRequested = totalSharesRequested.add(bondsRequested);
 
         address memberAddress = memberAddressByDelegateKey[msg.sender];
 
@@ -352,7 +352,7 @@ At any time, members can submit new proposals using their `delegateKey`.
         Proposal memory proposal = Proposal({
             proposer: memberAddress,
             applicant: applicant,
-            sharesRequested: sharesRequested,
+            bondsRequested: bondsRequested,
             startingPeriod: startingPeriod,
             yesVotes: 0,
             noVotes: 0,
@@ -368,20 +368,20 @@ At any time, members can submit new proposals using their `delegateKey`.
         proposalQueue.push(proposal);
 
         uint256 proposalIndex = proposalQueue.length.sub(1);
-        emit SubmitProposal(proposalIndex, msg.sender, memberAddress, applicant, tokenTribute, sharesRequested);
+        emit SubmitProposal(proposalIndex, msg.sender, memberAddress, applicant, tokenTribute, bondsRequested);
     }
 ```
 
 If there are no proposals in the queue, or if all the proposals in the queue have already started their respective voting period, then the proposal `startingPeriod` will be set to the next period. If there are proposals in the queue that have not started their voting period yet, the `startingPeriod` for the submitted proposal will be the next period after the `startingPeriod` of the last proposal in the queue.
 
-Existing members can earn additional voting shares through new proposals if they are listed as the `applicant`.
+Existing members can earn additional voting bonds through new proposals if they are listed as the `applicant`.
 
 ### submitVote
 While a proposal is in its voting period, members can submit their vote using their `delegateKey`.
 1. Saves the vote on the proposal by the member address.
-2. Based on their vote, adds the member's voting shares to the proposal `yesVotes` or `noVotes` tallies.
+2. Based on their vote, adds the member's voting bonds to the proposal `yesVotes` or `noVotes` tallies.
 4. If the member voted **Yes** and this is now the highest index proposal they voted **Yes** on, update their `highestIndexYesVote`.
-5. If the member voted **Yes** and this is now the most total shares that the Guild had during any **Yes** vote, update the proposal `maxTotalSharesAtYesVote`.
+5. If the member voted **Yes** and this is now the most total bonds that the Guild had during any **Yes** vote, update the proposal `maxTotalSharesAtYesVote`.
 
 ```
     function submitVote(uint256 proposalIndex, uint8 uintVote) public onlyDelegate {
@@ -405,20 +405,20 @@ While a proposal is in its voting period, members can submit their vote using th
 
         // count vote
         if (vote == Vote.Yes) {
-            proposal.yesVotes = proposal.yesVotes.add(member.shares);
+            proposal.yesVotes = proposal.yesVotes.add(member.bonds);
 
             // set highest index (latest) yes vote - must be processed for member to ragequit
             if (proposalIndex > member.highestIndexYesVote) {
                 member.highestIndexYesVote = proposalIndex;
             }
 
-            // set maximum of total shares encountered at a yes vote - used to bound dilution for yes voters
+            // set maximum of total bonds encountered at a yes vote - used to bound dilution for yes voters
             if (totalShares > proposal.maxTotalSharesAtYesVote) {
                 proposal.maxTotalSharesAtYesVote = totalShares;
             }
 
         } else if (vote == Vote.No) {
-            proposal.noVotes = proposal.noVotes.add(member.shares);
+            proposal.noVotes = proposal.noVotes.add(member.bonds);
         }
 
         emit SubmitVote(proposalIndex, msg.sender, memberAddress, uintVote);
@@ -428,10 +428,10 @@ While a proposal is in its voting period, members can submit their vote using th
 After a proposal has completed its grace period, anyone can call `processProposal` to tally the votes and either accept or reject it. The caller receives 0.1 ETH as a reward.
 
 1. Sets `proposal.processed = true` to prevent duplicate processing.
-2. Update `totalSharesRequested` to deduct the proposal shares requested.
+2. Update `totalSharesRequested` to deduct the proposal bonds requested.
 3. Determine if the proposal passed or failed based on the votes and whether or not the dilution bound was exceeded.
 4. If the proposal passed (and was not aborted):
-    4.1. If the applicant is an existing member, add the requested shares to their existing shares.
+    4.1. If the applicant is an existing member, add the requested bonds to their existing bonds.
     4.2. If the applicant is a new member, save their data and set their default `delegateKey` to be the same as their member address.
         4.2.1. For new members, if the member address is taken by an existing member's `delegateKey` forcibly reset that member's `delegateKey` to their member address.
     4.3. Update the `totalShares`.
@@ -451,7 +451,7 @@ After a proposal has completed its grace period, anyone can call `processProposa
         require(proposalIndex == 0 || proposalQueue[proposalIndex.sub(1)].processed, "James::processProposal - previous proposal must be processed");
 
         proposal.processed = true;
-        totalSharesRequested = totalSharesRequested.sub(proposal.sharesRequested);
+        totalSharesRequested = totalSharesRequested.sub(proposal.bondsRequested);
 
         bool didPass = proposal.yesVotes > proposal.noVotes;
 
@@ -465,9 +465,9 @@ After a proposal has completed its grace period, anyone can call `processProposa
 
             proposal.didPass = true;
 
-            // if the applicant is already a member, add to their existing shares
+            // if the applicant is already a member, add to their existing bonds
             if (members[proposal.applicant].exists) {
-                members[proposal.applicant].shares = members[proposal.applicant].shares.add(proposal.sharesRequested);
+                members[proposal.applicant].bonds = members[proposal.applicant].bonds.add(proposal.bondsRequested);
 
             // the applicant is a new member, create a new record for them
             } else {
@@ -479,12 +479,12 @@ After a proposal has completed its grace period, anyone can call `processProposa
                 }
 
                 // use applicant address as delegateKey by default
-                members[proposal.applicant] = Member(proposal.applicant, proposal.sharesRequested, true, 0);
+                members[proposal.applicant] = Member(proposal.applicant, proposal.bondsRequested, true, 0);
                 memberAddressByDelegateKey[proposal.applicant] = proposal.applicant;
             }
 
-            // mint new shares
-            totalShares = totalShares.add(proposal.sharesRequested);
+            // mint new bonds
+            totalShares = totalShares.add(proposal.bondsRequested);
 
             // transfer tokens to guild bank
             require(
@@ -518,49 +518,49 @@ After a proposal has completed its grace period, anyone can call `processProposa
             proposal.applicant,
             proposal.proposer,
             proposal.tokenTribute,
-            proposal.sharesRequested,
+            proposal.bondsRequested,
             didPass
         );
     }
 ```
 
-The `dilutionBound` is a safety mechanism designed to prevent a member from facing a potentially unbounded grant obligation if they vote YES on a passing proposal and the vast majority of the other members ragequit before it is processed. The `proposal.maxTotalSharesAtYesVote` will be the highest total shares at the time of any **Yes** vote on the proposal. When the proposal is being processed, if members have ragequit and the total shares has dropped by more than the `dilutionBound` (default = 3), the proposal will fail. This means that members voting **Yes** will only be obligated to contribute *at most* 3x what the were willing to contribute their share of the proposal cost, if 2/3 of the shares ragequit.
+The `dilutionBound` is a safety mechanism designed to prevent a member from facing a potentially unbounded grant obligation if they vote YES on a passing proposal and the vast majority of the other members ragequit before it is processed. The `proposal.maxTotalSharesAtYesVote` will be the highest total bonds at the time of any **Yes** vote on the proposal. When the proposal is being processed, if members have ragequit and the total bonds has dropped by more than the `dilutionBound` (default = 3), the proposal will fail. This means that members voting **Yes** will only be obligated to contribute *at most* 3x what the were willing to contribute their share of the proposal cost, if 2/3 of the bonds ragequit.
 
 ### ragequit
 
-At any time, so long as a member has not voted YES on any proposal in the voting period or grace period, they can *irreversibly* destroy some of their shares and receive a proportional sum of ETH from the Guild Bank.
+At any time, so long as a member has not voted YES on any proposal in the voting period or grace period, they can *irreversibly* destroy some of their bonds and receive a proportional sum of ETH from the Guild Bank.
 
-1. Reduce the member's shares by the `sharesToBurn` being destroyed.
-2. Reduce the total shares by the `sharesToBurn`.
+1. Reduce the member's bonds by the `bondsToBurn` being destroyed.
+2. Reduce the total bonds by the `bondsToBurn`.
 3. Instruct the Guild Bank to send the member their proportional amount of ETH.
 
 ```
-    function ragequit(uint256 sharesToBurn) public onlyMember {
+    function ragequit(uint256 bondsToBurn) public onlyMember {
         uint256 initialTotalShares = totalShares;
 
         Member storage member = members[msg.sender];
 
-        require(member.shares >= sharesToBurn, "James::ragequit - insufficient shares");
+        require(member.bonds >= bondsToBurn, "James::ragequit - insufficient bonds");
 
         require(canRagequit(member.highestIndexYesVote), "James::ragequit - cant ragequit until highest index proposal member voted YES on is processed");
 
-        // burn shares
-        member.shares = member.shares.sub(sharesToBurn);
-        totalShares = totalShares.sub(sharesToBurn);
+        // burn bonds
+        member.bonds = member.bonds.sub(bondsToBurn);
+        totalShares = totalShares.sub(bondsToBurn);
 
         // instruct guildBank to transfer fair share of tokens to the ragequitter
         require(
-            guildBank.withdraw(msg.sender, sharesToBurn, initialTotalShares),
+            guildBank.withdraw(msg.sender, bondsToBurn, initialTotalShares),
             "James::ragequit - withdrawal of tokens from guildBank failed"
         );
 
-        emit Ragequit(msg.sender, sharesToBurn);
+        emit Ragequit(msg.sender, bondsToBurn);
     }
 ```
 
 ### abort
 
-One vulnerability found during audit was that interacting with the James contract is that **calling "approve" with wETH is not safe**. When new applicants or existing members approve the transfer of some wETH to prepare for a proposal submission, any member could submit a proposal pointing to that applicant, `transferFrom` their approved tokens to James, but maliciously input fewer shares than the applicant was expecting, effectively stealing from them. If this were to happen the applicant would find themselves appealing to the good will of the Guild members to vote **No** on the proposal and return the applicant's funds.
+One vulnerability found during audit was that interacting with the James contract is that **calling "approve" with wETH is not safe**. When new applicants or existing members approve the transfer of some wETH to prepare for a proposal submission, any member could submit a proposal pointing to that applicant, `transferFrom` their approved tokens to James, but maliciously input fewer bonds than the applicant was expecting, effectively stealing from them. If this were to happen the applicant would find themselves appealing to the good will of the Guild members to vote **No** on the proposal and return the applicant's funds.
 
 To address this, a proposal applicant can call `abort` to cancel the proposal, disable all future votes, and immediately receive their money back. The applicant has from the time the proposal is submitted to the time the `abortWindow` expires (1 day into the voting period) to do this.
 
@@ -717,8 +717,8 @@ function.
    provided `receiver` address.
 
 ```
-    function withdraw(address receiver, uint256 shares, uint256 totalShares) public onlyOwner returns (bool) {
-        uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
+    function withdraw(address receiver, uint256 bonds, uint256 totalShares) public onlyOwner returns (bool) {
+        uint256 amount = approvedToken.balanceOf(address(this)).mul(bonds).div(totalShares);
         emit Withdrawal(receiver, amount);
         return approvedToken.transfer(receiver, amount);
     }

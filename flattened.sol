@@ -185,8 +185,8 @@ contract GuildBank is Ownable {
         approvedToken = IERC20(approvedTokenAddress);
     }
 
-    function withdraw(address receiver, uint256 shares, uint256 totalShares) public onlyOwner returns (bool) {
-        uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
+    function withdraw(address receiver, uint256 bonds, uint256 totalShares) public onlyOwner returns (bool) {
+        uint256 amount = approvedToken.balanceOf(address(this)).mul(bonds).div(totalShares);
         emit Withdrawal(receiver, amount);
         return approvedToken.transfer(receiver, amount);
     }
@@ -219,28 +219,28 @@ contract James {
 
     // HARD-CODED LIMITS
     // These numbers are quite arbitrary; they are small enough to avoid overflows when doing calculations
-    // with periods or shares, yet big enough to not limit reasonable use cases.
+    // with periods or bonds, yet big enough to not limit reasonable use cases.
     uint256 constant MAX_VOTING_PERIOD_LENGTH = 10**18; // maximum length of voting period
     uint256 constant MAX_GRACE_PERIOD_LENGTH = 10**18; // maximum length of grace period
     uint256 constant MAX_DILUTION_BOUND = 10**18; // maximum dilution bound
-    uint256 constant MAX_NUMBER_OF_SHARES = 10**18; // maximum number of shares that can be minted
+    uint256 constant MAX_NUMBER_OF_SHARES = 10**18; // maximum number of bonds that can be minted
 
     /***************
     EVENTS
     ***************/
-    event SubmitProposal(uint256 proposalIndex, address indexed delegateKey, address indexed memberAddress, address indexed applicant, uint256 tokenTribute, uint256 sharesRequested);
+    event SubmitProposal(uint256 proposalIndex, address indexed delegateKey, address indexed memberAddress, address indexed applicant, uint256 tokenTribute, uint256 bondsRequested);
     event SubmitVote(uint256 indexed proposalIndex, address indexed delegateKey, address indexed memberAddress, uint8 uintVote);
-    event ProcessProposal(uint256 indexed proposalIndex, address indexed applicant, address indexed memberAddress, uint256 tokenTribute, uint256 sharesRequested, bool didPass);
-    event Ragequit(address indexed memberAddress, uint256 sharesToBurn);
+    event ProcessProposal(uint256 indexed proposalIndex, address indexed applicant, address indexed memberAddress, uint256 tokenTribute, uint256 bondsRequested, bool didPass);
+    event Ragequit(address indexed memberAddress, uint256 bondsToBurn);
     event Abort(uint256 indexed proposalIndex, address applicantAddress);
     event UpdateDelegateKey(address indexed memberAddress, address newDelegateKey);
-    event SummonComplete(address indexed summoner, uint256 shares);
+    event SummonComplete(address indexed summoner, uint256 bonds);
 
     /******************
     INTERNAL ACCOUNTING
     ******************/
-    uint256 public totalShares = 0; // total shares across all members
-    uint256 public totalSharesRequested = 0; // total shares that have been requested in unprocessed proposals
+    uint256 public totalShares = 0; // total bonds across all members
+    uint256 public totalSharesRequested = 0; // total bonds that have been requested in unprocessed proposals
 
     enum Vote {
         Null, // default value, counted as abstention
@@ -250,7 +250,7 @@ contract James {
 
     struct Member {
         address delegateKey; // the key responsible for submitting proposals and voting - defaults to member address unless updated
-        uint256 shares; // the # of shares assigned to this member
+        uint256 bonds; // the # of bonds assigned to this member
         bool exists; // always true once a member has been created
         uint256 highestIndexYesVote; // highest proposal index # on which the member voted YES
     }
@@ -258,7 +258,7 @@ contract James {
     struct Proposal {
         address proposer; // the member who submitted the proposal
         address applicant; // the applicant who wishes to become a member - this key will be used for withdrawals
-        uint256 sharesRequested; // the # of shares the applicant is requesting
+        uint256 bondsRequested; // the # of bonds the applicant is requesting
         uint256 startingPeriod; // the period in which voting can start for this proposal
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
@@ -267,7 +267,7 @@ contract James {
         bool aborted; // true only if applicant calls "abort" fn before end of voting period
         uint256 tokenTribute; // amount of tokens offered as tribute
         string details; // proposal details - could be IPFS hash, plaintext, or JSON
-        uint256 maxTotalSharesAtYesVote; // the maximum # of total shares encountered at a yes vote on this proposal
+        uint256 maxTotalSharesAtYesVote; // the maximum # of total bonds encountered at a yes vote on this proposal
         mapping (address => Vote) votesByMember; // the votes on this proposal by each member
     }
 
@@ -279,12 +279,12 @@ contract James {
     MODIFIERS
     ********/
     modifier onlyMember {
-        require(members[msg.sender].shares > 0, "James::onlyMember - not a member");
+        require(members[msg.sender].bonds > 0, "James::onlyMember - not a member");
         _;
     }
 
     modifier onlyDelegate {
-        require(members[memberAddressByDelegateKey[msg.sender]].shares > 0, "James::onlyDelegate - not a delegate");
+        require(members[memberAddressByDelegateKey[msg.sender]].bonds > 0, "James::onlyDelegate - not a delegate");
         _;
     }
 
@@ -342,7 +342,7 @@ contract James {
     function submitProposal(
         address applicant,
         uint256 tokenTribute,
-        uint256 sharesRequested,
+        uint256 bondsRequested,
         string memory details
     )
         public
@@ -350,12 +350,12 @@ contract James {
     {
         require(applicant != address(0), "James::submitProposal - applicant cannot be 0");
 
-        // Make sure we won't run into overflows when doing calculations with shares.
-        // Note that totalShares + totalSharesRequested + sharesRequested is an upper bound
-        // on the number of shares that can exist until this proposal has been processed.
-        require(totalShares.add(totalSharesRequested).add(sharesRequested) <= MAX_NUMBER_OF_SHARES, "James::submitProposal - too many shares requested");
+        // Make sure we won't run into overflows when doing calculations with bonds.
+        // Note that totalShares + totalSharesRequested + bondsRequested is an upper bound
+        // on the number of bonds that can exist until this proposal has been processed.
+        require(totalShares.add(totalSharesRequested).add(bondsRequested) <= MAX_NUMBER_OF_SHARES, "James::submitProposal - too many bonds requested");
 
-        totalSharesRequested = totalSharesRequested.add(sharesRequested);
+        totalSharesRequested = totalSharesRequested.add(bondsRequested);
 
         address memberAddress = memberAddressByDelegateKey[msg.sender];
 
@@ -375,7 +375,7 @@ contract James {
         Proposal memory proposal = Proposal({
             proposer: memberAddress,
             applicant: applicant,
-            sharesRequested: sharesRequested,
+            bondsRequested: bondsRequested,
             startingPeriod: startingPeriod,
             yesVotes: 0,
             noVotes: 0,
@@ -391,7 +391,7 @@ contract James {
         proposalQueue.push(proposal);
 
         uint256 proposalIndex = proposalQueue.length.sub(1);
-        emit SubmitProposal(proposalIndex, msg.sender, memberAddress, applicant, tokenTribute, sharesRequested);
+        emit SubmitProposal(proposalIndex, msg.sender, memberAddress, applicant, tokenTribute, bondsRequested);
     }
 
     function submitVote(uint256 proposalIndex, uint8 uintVote) public onlyDelegate {
@@ -415,20 +415,20 @@ contract James {
 
         // count vote
         if (vote == Vote.Yes) {
-            proposal.yesVotes = proposal.yesVotes.add(member.shares);
+            proposal.yesVotes = proposal.yesVotes.add(member.bonds);
 
             // set highest index (latest) yes vote - must be processed for member to ragequit
             if (proposalIndex > member.highestIndexYesVote) {
                 member.highestIndexYesVote = proposalIndex;
             }
 
-            // set maximum of total shares encountered at a yes vote - used to bound dilution for yes voters
+            // set maximum of total bonds encountered at a yes vote - used to bound dilution for yes voters
             if (totalShares > proposal.maxTotalSharesAtYesVote) {
                 proposal.maxTotalSharesAtYesVote = totalShares;
             }
 
         } else if (vote == Vote.No) {
-            proposal.noVotes = proposal.noVotes.add(member.shares);
+            proposal.noVotes = proposal.noVotes.add(member.bonds);
         }
 
         emit SubmitVote(proposalIndex, msg.sender, memberAddress, uintVote);
@@ -443,7 +443,7 @@ contract James {
         require(proposalIndex == 0 || proposalQueue[proposalIndex.sub(1)].processed, "James::processProposal - previous proposal must be processed");
 
         proposal.processed = true;
-        totalSharesRequested = totalSharesRequested.sub(proposal.sharesRequested);
+        totalSharesRequested = totalSharesRequested.sub(proposal.bondsRequested);
 
         bool didPass = proposal.yesVotes > proposal.noVotes;
 
@@ -457,9 +457,9 @@ contract James {
 
             proposal.didPass = true;
 
-            // if the applicant is already a member, add to their existing shares
+            // if the applicant is already a member, add to their existing bonds
             if (members[proposal.applicant].exists) {
-                members[proposal.applicant].shares = members[proposal.applicant].shares.add(proposal.sharesRequested);
+                members[proposal.applicant].bonds = members[proposal.applicant].bonds.add(proposal.bondsRequested);
 
             // the applicant is a new member, create a new record for them
             } else {
@@ -471,12 +471,12 @@ contract James {
                 }
 
                 // use applicant address as delegateKey by default
-                members[proposal.applicant] = Member(proposal.applicant, proposal.sharesRequested, true, 0);
+                members[proposal.applicant] = Member(proposal.applicant, proposal.bondsRequested, true, 0);
                 memberAddressByDelegateKey[proposal.applicant] = proposal.applicant;
             }
 
-            // mint new shares
-            totalShares = totalShares.add(proposal.sharesRequested);
+            // mint new bonds
+            totalShares = totalShares.add(proposal.bondsRequested);
 
             // transfer tokens to guild bank
             require(
@@ -510,31 +510,31 @@ contract James {
             proposal.applicant,
             proposal.proposer,
             proposal.tokenTribute,
-            proposal.sharesRequested,
+            proposal.bondsRequested,
             didPass
         );
     }
 
-    function ragequit(uint256 sharesToBurn) public onlyMember {
+    function ragequit(uint256 bondsToBurn) public onlyMember {
         uint256 initialTotalShares = totalShares;
 
         Member storage member = members[msg.sender];
 
-        require(member.shares >= sharesToBurn, "James::ragequit - insufficient shares");
+        require(member.bonds >= bondsToBurn, "James::ragequit - insufficient bonds");
 
         require(canRagequit(member.highestIndexYesVote), "James::ragequit - cant ragequit until highest index proposal member voted YES on is processed");
 
-        // burn shares
-        member.shares = member.shares.sub(sharesToBurn);
-        totalShares = totalShares.sub(sharesToBurn);
+        // burn bonds
+        member.bonds = member.bonds.sub(bondsToBurn);
+        totalShares = totalShares.sub(bondsToBurn);
 
         // instruct guildBank to transfer fair share of tokens to the ragequitter
         require(
-            guildBank.withdraw(msg.sender, sharesToBurn, initialTotalShares),
+            guildBank.withdraw(msg.sender, bondsToBurn, initialTotalShares),
             "James::ragequit - withdrawal of tokens from guildBank failed"
         );
 
-        emit Ragequit(msg.sender, sharesToBurn);
+        emit Ragequit(msg.sender, bondsToBurn);
     }
 
     function abort(uint256 proposalIndex) public {
@@ -609,4 +609,3 @@ contract James {
 }
 
 // "0x512E07A093aAA20Ba288392EaDF03838C7a4e522", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", 17280, 35, 35, 5, 10000000000000000000, 3, 100000000000000000
-

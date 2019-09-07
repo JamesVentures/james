@@ -14,8 +14,8 @@ const {
 
 task('pool-deploy', 'Deploys a new instance of the pool and activates it')
   .addParam('tokens', 'The initial amount of tokens to deposit')
-  .addParam('shares', 'The initial amount of shares to mint')
-  .setAction(async ({ tokens, shares }) => {
+  .addParam('bonds', 'The initial amount of bonds to mint')
+  .setAction(async ({ tokens, bonds }) => {
     // Make sure everything is compiled
     await run('compile')
 
@@ -35,7 +35,7 @@ task('pool-deploy', 'Deploys a new instance of the pool and activates it')
       'Deployment parameters:\n',
       '  James DAO:', james.address, '\n',
       '  initialTokens:', tokens, '\n',
-      '  initialPoolShares:', shares, '\n'
+      '  initialPoolShares:', bonds, '\n'
     )
 
     const Confirm = require('prompt-confirm')
@@ -69,7 +69,7 @@ task('pool-deploy', 'Deploys a new instance of the pool and activates it')
       await giveAllowance(token, sender, pool, tokens)
     }
 
-    await pool.activate(tokens, shares)
+    await pool.activate(tokens, bonds)
 
     console.log('The pool is now active')
   })
@@ -132,8 +132,8 @@ task('pool-deposit', 'Donates tokens to the pool')
   })
 
 task('pool-withdraw', 'Withdraw tokens from the pool')
-  .addParam('shares', 'The amount of shares to burn')
-  .setAction(async ({ shares }) => {
+  .addParam('bonds', 'The amount of bonds to burn')
+  .setAction(async ({ bonds }) => {
     // Make sure everything is compiled
     await run('compile')
 
@@ -143,19 +143,19 @@ task('pool-withdraw', 'Withdraw tokens from the pool')
     }
 
     const sender = await getFirstAccount()
-    if (!await hasEnoughPoolShares(pool, sender, shares)) {
-      console.log("You don't have enough shares")
+    if (!await hasEnoughPoolShares(pool, sender, bonds)) {
+      console.log("You don't have enough bonds")
       return
     }
 
-    await pool.withdraw(shares)
+    await pool.withdraw(bonds)
     console.log('Successful withdrawal')
   })
 
 task('pool-keeper-withdraw', "Withdraw other users' tokens from the pool")
-  .addParam('shares', 'The amount of shares to burn')
+  .addParam('bonds', 'The amount of bonds to burn')
   .addParam('owner', 'The owner of the tokens')
-  .setAction(async ({ shares, owner }) => {
+  .setAction(async ({ bonds, owner }) => {
     // Make sure everything is compiled
     await run('compile')
 
@@ -164,13 +164,13 @@ task('pool-keeper-withdraw', "Withdraw other users' tokens from the pool")
       return
     }
 
-    if (!await hasEnoughPoolShares(pool, owner, shares)) {
-      console.log("The owner of the tokens doesn't have enough shares")
+    if (!await hasEnoughPoolShares(pool, owner, bonds)) {
+      console.log("The owner of the tokens doesn't have enough bonds")
       return
     }
 
     try {
-      await pool.keeperWithdraw(shares, owner)
+      await pool.keeperWithdraw(bonds, owner)
       console.log('Withdrawal was successful')
     } catch (error) {
       console.error('Withdrawal failed. Make sure that you are actually a keeper')

@@ -86,9 +86,9 @@ async function getFirstAccount () {
 }
 
 async function hasEnoughPoolShares (pool, owner, amount) {
-  const shares = await pool.donors(owner)
+  const bonds = await pool.donors(owner)
 
-  return shares.gte(new BN(amount))
+  return bonds.gte(new BN(amount))
 }
 
 module.exports = {

@@ -100,7 +100,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
     return token.approve(pool.address, MAX_UINT256, { from: approver })
   }
 
-  async function submitProposal (applicant, proposer, tribute, shares, description) {
+  async function submitProposal (applicant, proposer, tribute, bonds, description) {
     await sendTokensTo(proposer, PROPOSAL_DEPOSIT)
     await giveAllowanceToJames(proposer)
 
@@ -112,7 +112,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
     return james.submitProposal(
       applicant,
       tribute,
-      shares,
+      bonds,
       description,
       { from: proposer }
     )
@@ -167,18 +167,18 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
   describe('When not active', () => {
     describe('activate', () => {
       it('should be initialized with the right values', async () => {
-        const shares = 123
+        const bonds = 123
         const tokens = 12
 
         await sendTokensTo(firstPoolMember, 1)
         await assertBalance(firstPoolMember, 1)
 
-        await activatePool(firstPoolMember, tokens, shares)
+        await activatePool(firstPoolMember, tokens, bonds)
 
         await assertBalance(firstPoolMember, 1)
         await assertBalance(pool.address, tokens)
-        await assertTotalShares(shares)
-        await assertShares(firstPoolMember, shares)
+        await assertTotalShares(bonds)
+        await assertShares(firstPoolMember, bonds)
       })
 
       it("Shouldn't work when already activated", async () => {
@@ -186,9 +186,9 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
         await activatePool(firstPoolMember, 1, 2).should.be.rejectedWith('JamesPool: Already active')
       })
 
-      it("Shouldn't accept more than MAX_NUMBER_OF_SHARES initial shares", async () => {
+      it("Shouldn't accept more than MAX_NUMBER_OF_SHARES initial bonds", async () => {
         await activatePool(firstPoolMember, 1, MAX_NUMBER_OF_SHARES.add(new BN(1)))
-          .should.be.rejectedWith('JamesPool: Max number of shares exceeded')
+          .should.be.rejectedWith('JamesPool: Max number of bonds exceeded')
       })
 
       it('Should fail if no allowance is given', async () => {
@@ -263,7 +263,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
     })
 
     describe('deposit', () => {
-      it('Should transfer the deposited tokens into the pool and mint the right shares', async () => {
+      it('Should transfer the deposited tokens into the pool and mint the right bonds', async () => {
         await sendTokensTo(depositor, 125)
         await giveAllowanceToJamesPool(depositor)
 
@@ -290,7 +290,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
         assertEvent(tx, 'SharesMinted', 120 * initialShares, depositor, 121 * initialShares)
       })
 
-      it('Should fail if the amounts of shares minted makes the total exceed the MAX_NUMBER_OF_SHARES', async () => {
+      it('Should fail if the amounts of bonds minted makes the total exceed the MAX_NUMBER_OF_SHARES', async () => {
         const missingShares = MAX_NUMBER_OF_SHARES.sub(new BN(initialShares))
         const tokensNeeded = missingShares.div(new BN(initialShares)).add(new BN(1))
 
@@ -301,7 +301,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
         // https://github.com/nomiclabs/buidler/issues/272
         // TODO(@alcuadrado): Remove this when the issue gets fixed
         await pool.deposit(tokensNeeded, { from: depositor, gas: 2000000 })
-          .should.be.rejectedWith('JamesPool: Max number of shares exceeded')
+          .should.be.rejectedWith('JamesPool: Max number of bonds exceeded')
       })
 
       it('Should be callable by anyone', async () => {
@@ -323,25 +323,25 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
     })
 
     describe('Withdraw', () => {
-      it('should be callable with 0 shares', async () => {
+      it('should be callable with 0 bonds', async () => {
         await assertShares(firstPoolMember, initialShares)
         await pool.withdraw(0, { from: firstPoolMember }).should.be.fulfilled
         await assertShares(firstPoolMember, initialShares)
         await assertTotalShares(initialShares)
       })
 
-      it('should fail if trying to withdraw more shares than the ones you own', async () => {
+      it('should fail if trying to withdraw more bonds than the ones you own', async () => {
         await pool.withdraw(initialShares + 1, { from: firstPoolMember })
-          .should.be.rejectedWith('JamesPool: Not enough shares to burn')
+          .should.be.rejectedWith('JamesPool: Not enough bonds to burn')
       })
 
       it("should fail if trying with any share if you aren't a donor", async () => {
         await pool.withdraw(1, { from: depositor })
-          .should.be.rejectedWith('JamesPool: Not enough shares to burn')
+          .should.be.rejectedWith('JamesPool: Not enough bonds to burn')
       })
 
-      it('Should transfer a proportional amount of tokens according to the shares burnt, and burn the shares', async () => {
-        // We deposit twice the initial tokens, so we get twice the shares.
+      it('Should transfer a proportional amount of tokens according to the bonds burnt, and burn the bonds', async () => {
+        // We deposit twice the initial tokens, so we get twice the bonds.
         // Then we burnt half of it
         await sendTokensTo(depositor, initialTokens * 2)
         await giveAllowanceToJamesPool(depositor)
@@ -390,25 +390,25 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
           .should.be.rejectedWith('JamesPool: Sender is not a keeper')
       })
 
-      it('should be callable with 0 shares', async () => {
+      it('should be callable with 0 bonds', async () => {
         await assertShares(depositor, 0)
         await pool.keeperWithdraw(0, depositor, { from: depositorKeeper })
         await assertShares(depositor, 0)
         await assertTotalShares(initialShares)
       })
 
-      it('should fail if trying to withdraw more shares than the ones you own', async () => {
+      it('should fail if trying to withdraw more bonds than the ones you own', async () => {
         await pool.keeperWithdraw(initialShares + 1, firstPoolMember, { from: firstMemberKeeper })
-          .should.be.rejectedWith('JamesPool: Not enough shares to burn')
+          .should.be.rejectedWith('JamesPool: Not enough bonds to burn')
       })
 
       it("should fail if trying to any share if you aren't a donor", async () => {
         await pool.keeperWithdraw(1, depositor, { from: depositorKeeper })
-          .should.be.rejectedWith('JamesPool: Not enough shares to burn')
+          .should.be.rejectedWith('JamesPool: Not enough bonds to burn')
       })
 
-      it('Should transfer a proportional amount of tokens according to the shares burnt, and burn the shares, whithout affecting the keeper', async () => {
-        // We deposit twice the initial tokens, so we get twice the shares.
+      it('Should transfer a proportional amount of tokens according to the bonds burnt, and burn the bonds, whithout affecting the keeper', async () => {
+        // We deposit twice the initial tokens, so we get twice the bonds.
         // Then we burnt half of it.
         // We also deposit initial-tokens from the depositor's keepr, to check
         // that their numbers aren't affected
@@ -595,7 +595,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
             await assertCurrentProposalIndex(0)
           })
 
-          it("Shouldn't mint shares if the proposal has been aborted, but it should increase the index", async () => {
+          it("Shouldn't mint bonds if the proposal has been aborted, but it should increase the index", async () => {
             await assertTotalShares(initialShares)
             await assertCurrentProposalIndex(0)
 
@@ -611,7 +611,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
             await assertCurrentProposalIndex(1)
           })
 
-          it("Shouldn't mint shares if the proposal didn't pass, but it should increase the index", async () => {
+          it("Shouldn't mint bonds if the proposal didn't pass, but it should increase the index", async () => {
             await assertTotalShares(initialShares)
             await assertCurrentProposalIndex(0)
 
@@ -631,7 +631,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
 
         describe('When the proposal is approved and processed', () => {
           describe("When the proposal isn't a grant", () => {
-            it("Shouldn't mint shares if the proposal isn't a grant (tokenTribute > 0), but it should increase the index", async () => {
+            it("Shouldn't mint bonds if the proposal isn't a grant (tokenTribute > 0), but it should increase the index", async () => {
               await assertTotalShares(initialShares)
               await assertCurrentProposalIndex(0)
 
@@ -648,7 +648,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
               await assertCurrentProposalIndex(1)
             })
 
-            it("Shouldn't mint shares if the proposal asked didn't ask for shares, but it should increase the index", async () => {
+            it("Shouldn't mint bonds if the proposal asked didn't ask for bonds, but it should increase the index", async () => {
               // We should use tokenTribute = 0 here to separate it from the previous case
               await assertTotalShares(initialShares)
               await assertCurrentProposalIndex(0)
@@ -671,12 +671,12 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
             const ignoredMember = depositor
 
             describe("When nobody ragequits nor joins before it's processed", () => {
-              it('Should mint shares proportional to the current amount of the James shares', async () => {
+              it('Should mint bonds proportional to the current amount of the James bonds', async () => {
                 await assertTotalShares(initialShares)
                 await assertCurrentProposalIndex(0)
 
-                // We ask for twice the amount of James's shares, so we
-                // should receive twice the amount of the pool's shares too.
+                // We ask for twice the amount of James's bonds, so we
+                // should receive twice the amount of the pool's bonds too.
                 await submitProposal(proposed, summoner, 0, 2, '')
 
                 await advanceTimeInPeriods(ABORT_WINDOW_IN_PERIODS)
@@ -695,8 +695,8 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
                 await assertTotalShares(initialShares)
                 await assertCurrentProposalIndex(0)
 
-                // We ask for twice the amount of James's shares, so we
-                // should receive twice the amount of the pool's shares too.
+                // We ask for twice the amount of James's bonds, so we
+                // should receive twice the amount of the pool's bonds too.
                 await submitProposal(proposed, summoner, 0, 2, '')
 
                 await advanceTimeInPeriods(ABORT_WINDOW_IN_PERIODS)
@@ -710,7 +710,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
             })
 
             describe("When somebody ragequits and nobody joins before it's processed", () => {
-              it('Should mint shares proportional to the max amount of the James on yest votes', async () => {
+              it('Should mint bonds proportional to the max amount of the James on yest votes', async () => {
                 await assertTotalShares(initialShares)
                 await assertCurrentProposalIndex(0)
 
@@ -725,7 +725,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
                 await pool.sync(1)
 
                 // Just to make sure everything is fine, that wasn't a grant,
-                // so no pool shares were minted
+                // so no pool bonds were minted
                 await assertTotalShares(initialShares)
                 await assertCurrentProposalIndex(1)
 
@@ -740,8 +740,8 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
 
                 await pool.sync(2)
 
-                // The max numbers of James shares when voting yes was 2, and
-                // this member asked for 1, so 0.5 initial shares should have
+                // The max numbers of James bonds when voting yes was 2, and
+                // this member asked for 1, so 0.5 initial bonds should have
                 // been minted
 
                 await assertTotalShares(Math.floor(initialShares * 1.5))
@@ -751,7 +751,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
             })
 
             describe("When nobody ragequits and someone joins before it's processed", () => {
-              it('Should mint shares proportional to the max amount of the James on yest votes', async () => {
+              it('Should mint bonds proportional to the max amount of the James on yest votes', async () => {
                 await assertTotalShares(initialShares)
                 await assertCurrentProposalIndex(0)
 
@@ -772,26 +772,26 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
 
                 await processProposal(0)
 
-                // James now has two shares
+                // James now has two bonds
                 await assertBNEquals(james.totalShares(), 2)
 
                 await processProposal(1)
 
-                // James now has three shares
+                // James now has three bonds
                 await assertBNEquals(james.totalShares(), 3)
 
                 // We need to sync here, but this is not what we are testing
                 await pool.sync(1)
 
                 // Just to make sure everything is fine, that wasn't a grant,
-                // so no pool shares were minted
+                // so no pool bonds were minted
                 await assertTotalShares(initialShares)
                 await assertCurrentProposalIndex(1)
 
                 // Now sync the other, the one we want to test
                 await pool.sync(2)
 
-                // The max numbers of James shares when voting yes was 1, and
+                // The max numbers of James bonds when voting yes was 1, and
                 // this member asked for 1, so initialShares should have
                 // been minted
 
@@ -815,19 +815,19 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
           // This test sets up the followint scenario to then validate the
           // syncing results.
 
-          //  Depositor deposits intialToken tokens (pool shares: initialShares * 2)
-          //  Proposal 0: Approved non-grant (shares requested: 2)
+          //  Depositor deposits intialToken tokens (pool bonds: initialShares * 2)
+          //  Proposal 0: Approved non-grant (bonds requested: 2)
           //  Process proposal 0
-          //  Proposal 1: Approved approved grant (shares requested: 2 - max shares: 3)
+          //  Proposal 1: Approved approved grant (bonds requested: 2 - max bonds: 3)
           //  Proposal 2: Rejected proposal
           //  Process proposals 1 and 2
-          //  Proposal 3: Approved grant (shares requested: 1 - max shares: 5)
+          //  Proposal 3: Approved grant (bonds requested: 1 - max bonds: 5)
           //  Process proposal 3
           //  Proposal 4: Aborted proposal
-          //  Proposal 5: Approved grant (shares requested: 2 - max shares: 6)
+          //  Proposal 5: Approved grant (bonds requested: 2 - max bonds: 6)
           //  Process proposals 4 and 5
-          //  Proposal 6: Approved grant without processing (shares requested: 5 - max shares: 8)
-          //  Proposal 7: Proposed non-grant (shares requested: 8)
+          //  Proposal 6: Approved grant without processing (bonds requested: 5 - max bonds: 8)
+          //  Proposal 7: Proposed non-grant (bonds requested: 8)
           //  sync(8)
 
           await sendTokensTo(depositor, initialTokens)
@@ -894,7 +894,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
           // Proposal 7
           await submitProposal(proposed7, summoner, 1, 8, '')
 
-          // We check the shares before syncing
+          // We check the bonds before syncing
           assertTotalShares(initialShares * 2)
           assertShares(firstPoolMember, initialShares)
           assertShares(depositor, initialShares)
@@ -986,7 +986,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
           inputs: [
             {
               type: 'uint256',
-              name: 'sharesToMint'
+              name: 'bondsToMint'
             },
             {
               type: 'address',
@@ -1020,7 +1020,7 @@ contract('Pool', ([deployer, summoner, firstPoolMember, depositor, firstMemberKe
             },
             {
               type: 'uint256',
-              name: 'sharesToBurn'
+              name: 'bondsToBurn'
             }
           ]
         }, [firstMemberKeeper, '1'])

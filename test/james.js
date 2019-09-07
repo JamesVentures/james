@@ -107,11 +107,11 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
     const proposalData = await james.proposalQueue.call(proposalIndex)
     assert.equal(proposalData.proposer, proposer)
     assert.equal(proposalData.applicant, proposal.applicant)
-    if (typeof proposal.sharesRequested === 'number') {
-      assert.equal(proposalData.sharesRequested, proposal.sharesRequested)
+    if (typeof proposal.bondsRequested === 'number') {
+      assert.equal(proposalData.bondsRequested, proposal.bondsRequested)
     } else {
       // for testing overflow boundary with BNs
-      assert(proposalData.sharesRequested.eq(proposal.sharesRequested))
+      assert(proposalData.bondsRequested.eq(proposal.bondsRequested))
     }
     assert.equal(proposalData.startingPeriod, expectedStartingPeriod)
     assert.equal(proposalData.yesVotes, 0)
@@ -124,16 +124,16 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
     assert.equal(proposalData.maxTotalSharesAtYesVote, 0)
 
     const totalSharesRequested = await james.totalSharesRequested()
-    if (typeof proposal.sharesRequested === 'number') {
+    if (typeof proposal.bondsRequested === 'number') {
       assert.equal(
         totalSharesRequested,
-        proposal.sharesRequested + initialTotalSharesRequested
+        proposal.bondsRequested + initialTotalSharesRequested
       )
     } else {
       // for testing overflow boundary with BNs
       assert(
         totalSharesRequested.eq(
-          proposal.sharesRequested.add(new BN(initialTotalSharesRequested))
+          proposal.bondsRequested.add(new BN(initialTotalSharesRequested))
         )
       )
     }
@@ -268,7 +268,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
     assert.equal(
       totalShares,
       didPass && !aborted
-        ? initialTotalShares + proposal.sharesRequested
+        ? initialTotalShares + proposal.bondsRequested
         : initialTotalShares
     )
 
@@ -330,15 +330,15 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       if (initialApplicantShares > 0) {
         const memberData = await james.members(proposal.applicant)
         assert.equal(
-          memberData.shares,
-          proposal.sharesRequested + initialApplicantShares
+          memberData.bonds,
+          proposal.bondsRequested + initialApplicantShares
         )
 
         // new member
       } else {
         const newMemberData = await james.members(proposal.applicant)
         assert.equal(newMemberData.delegateKey, proposal.applicant)
-        assert.equal(newMemberData.shares, proposal.sharesRequested)
+        assert.equal(newMemberData.bonds, proposal.bondsRequested)
         assert.equal(newMemberData.exists, true)
         assert.equal(newMemberData.highestIndexYesVote, 0)
 
@@ -397,7 +397,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
     proposal1 = {
       applicant: applicant1,
       tokenTribute: 100,
-      sharesRequested: 1,
+      bondsRequested: 1,
       details: 'all hail james'
     }
 
@@ -450,7 +450,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
 
     const summonerData = await james.members(deploymentConfig.SUMMONER)
     assert.equal(summonerData.delegateKey.toLowerCase(), deploymentConfig.SUMMONER) // delegateKey matches
-    assert.equal(summonerData.shares, 1)
+    assert.equal(summonerData.bonds, 1)
     assert.equal(summonerData.exists, true)
     assert.equal(summonerData.highestIndexYesVote, 0)
 
@@ -486,7 +486,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -499,24 +499,24 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
 
     describe('uint overflow boundary', () => {
       it('require fail - uint overflow', async () => {
-        proposal1.sharesRequested = _1e18
+        proposal1.bondsRequested = _1e18
         await james
           .submitProposal(
             proposal1.applicant,
             proposal1.tokenTribute,
-            proposal1.sharesRequested,
+            proposal1.bondsRequested,
             proposal1.details,
             { from: summoner }
           )
-          .should.be.rejectedWith('too many shares requested')
+          .should.be.rejectedWith('too many bonds requested')
       })
 
       it('success - request 1 less share than the overflow limit', async () => {
-        proposal1.sharesRequested = _1e18.sub(new BN(1)) // 1 less
+        proposal1.bondsRequested = _1e18.sub(new BN(1)) // 1 less
         await james.submitProposal(
           proposal1.applicant,
           proposal1.tokenTribute,
-          proposal1.sharesRequested,
+          proposal1.bondsRequested,
           proposal1.details,
           { from: summoner }
         )
@@ -536,7 +536,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
         .submitProposal(
           proposal1.applicant,
           proposal1.tokenTribute,
-          proposal1.sharesRequested,
+          proposal1.bondsRequested,
           proposal1.details
         )
         .should.be.rejectedWith(SolRevert)
@@ -552,7 +552,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
         .submitProposal(
           proposal1.applicant,
           proposal1.tokenTribute,
-          proposal1.sharesRequested,
+          proposal1.bondsRequested,
           proposal1.details
         )
         .should.be.rejectedWith(SolRevert)
@@ -563,7 +563,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
         .submitProposal(
           proposal1.applicant,
           proposal1.tokenTribute,
-          proposal1.sharesRequested,
+          proposal1.bondsRequested,
           proposal1.details,
           { from: creator }
         )
@@ -576,7 +576,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -587,12 +587,12 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       })
     })
 
-    it('edge case - shares requested is 0', async () => {
-      proposal1.sharesRequested = 0
+    it('edge case - bonds requested is 0', async () => {
+      proposal1.bondsRequested = 0
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -617,7 +617,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -717,7 +717,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -777,7 +777,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -839,14 +839,14 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
       await moveForwardPeriods(1)
     })
 
-    it('when applicant is an existing member, adds to their shares', async () => {
+    it('when applicant is an existing member, adds to their bonds', async () => {
       await james.submitVote(0, 1, { from: summoner })
 
       await moveForwardPeriods(deploymentConfig.VOTING_DURATON_IN_PERIODS)
@@ -876,7 +876,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -931,7 +931,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -948,14 +948,14 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.ragequit(1, { from: summoner })
 
       const totalShares = await james.totalShares()
-      assert.equal(totalShares, proposal1.sharesRequested)
+      assert.equal(totalShares, proposal1.bondsRequested)
 
       const summonerData = await james.members(summoner)
-      assert.equal(summonerData.shares, 0)
+      assert.equal(summonerData.bonds, 0)
       assert.equal(summonerData.exists, true)
       assert.equal(summonerData.highestIndexYesVote, 0)
 
-      // can divide tokenTribute by 2 because 2 shares
+      // can divide tokenTribute by 2 because 2 bonds
       const summonerBalance = await token.balanceOf(summoner)
       const expectedBalance =
         initSummonerBalance -
@@ -971,11 +971,11 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       assert.equal(guildBankBalance, proposal1.tokenTribute / 2)
     })
 
-    it('require fail - insufficient shares', async () => {
+    it('require fail - insufficient bonds', async () => {
       await james.processProposal(0)
       await james
         .ragequit(2, { from: summoner })
-        .should.be.rejectedWith('insufficient shares')
+        .should.be.rejectedWith('insufficient bonds')
     })
 
     it('require fail - cant ragequit yet', async () => {
@@ -1037,7 +1037,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -1048,7 +1048,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
 
       const proposal = await james.proposalQueue.call(0)
       assert.equal(proposal.tokenTribute, 0)
-      assert.equal(proposal.sharesRequested, 1)
+      assert.equal(proposal.bondsRequested, 1)
       assert.equal(proposal.yesVotes, 0)
       assert.equal(proposal.noVotes, 0)
       assert.equal(proposal.maxTotalSharesAtYesVote, 0)
@@ -1130,7 +1130,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -1198,7 +1198,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       proposal2 = {
         applicant: applicant2,
         tokenTribute: 200,
-        sharesRequested: 2,
+        bondsRequested: 2,
         details: ''
       }
 
@@ -1221,7 +1221,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -1231,7 +1231,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal2.applicant,
         proposal2.tokenTribute,
-        proposal2.sharesRequested,
+        proposal2.bondsRequested,
         proposal2.details,
         { from: summoner }
       )
@@ -1254,7 +1254,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal2.applicant,
         proposal2.tokenTribute,
-        proposal2.sharesRequested,
+        proposal2.bondsRequested,
         proposal2.details,
         { from: summoner }
       )
@@ -1267,7 +1267,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal2.applicant,
         proposal2.tokenTribute,
-        proposal2.sharesRequested,
+        proposal2.bondsRequested,
         proposal2.details,
         { from: summoner }
       )
@@ -1279,7 +1279,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal2.applicant,
         proposal2.tokenTribute,
-        proposal2.sharesRequested,
+        proposal2.bondsRequested,
         proposal2.details,
         { from: summoner }
       )
@@ -1307,8 +1307,8 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
 
   describe('two members', () => {
     beforeEach(async () => {
-      // 3 so total shares is 4 and we can test ragequit + dilution boundary
-      proposal1.sharesRequested = 3
+      // 3 so total bonds is 4 and we can test ragequit + dilution boundary
+      proposal1.bondsRequested = 3
 
       await token.transfer(proposal1.applicant, proposal1.tokenTribute, {
         from: creator
@@ -1321,7 +1321,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal1.applicant,
         proposal1.tokenTribute,
-        proposal1.sharesRequested,
+        proposal1.bondsRequested,
         proposal1.details,
         { from: summoner }
       )
@@ -1336,7 +1336,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       proposal2 = {
         applicant: applicant2,
         tokenTribute: 200,
-        sharesRequested: 2,
+        bondsRequested: 2,
         details: ''
       }
 
@@ -1352,7 +1352,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       await james.submitProposal(
         proposal2.applicant,
         proposal2.tokenTribute,
-        proposal2.sharesRequested,
+        proposal2.bondsRequested,
         proposal2.details,
         { from: summoner }
       )
@@ -1475,7 +1475,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
       // summoner approve for proposal deposit
       await token.approve(james.address, 10, { from: summoner })
       // summoner submits proposal for safe
-      await james.submitProposal(proposal1.applicant, proposal1.tokenTribute, proposal1.sharesRequested, proposal1.details, { from: summoner })
+      await james.submitProposal(proposal1.applicant, proposal1.tokenTribute, proposal1.bondsRequested, proposal1.details, { from: summoner })
 
       // ABORT - gnosis safe aborts
       const abortData = await james.contract.methods.abort(0).encodeABI()
@@ -1492,7 +1492,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
 
         // summoner approves tokens and submits proposal for safe
         await token.approve(james.address, 10, { from: summoner })
-        await james.submitProposal(proposal1.applicant, proposal1.tokenTribute, proposal1.sharesRequested, proposal1.details, { from: summoner })
+        await james.submitProposal(proposal1.applicant, proposal1.tokenTribute, proposal1.bondsRequested, proposal1.details, { from: summoner })
 
         // summoner votes yes for safe
         await moveForwardPeriods(1)
@@ -1513,7 +1513,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
         proposal2 = {
           applicant: applicant1,
           tokenTribute: 100,
-          sharesRequested: 2,
+          bondsRequested: 2,
           details: ''
         }
 
@@ -1527,7 +1527,7 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
         await safeUtils.executeTransaction(lw, gnosisSafe, 'approve token transfer to james', [lw.accounts[0], lw.accounts[1]], token.address, 0, data, CALL, executor)
 
         // safe submits proposal
-        let submitProposalData = await james.contract.methods.submitProposal(proposal2.applicant, proposal2.tokenTribute, proposal2.sharesRequested, proposal2.details).encodeABI()
+        let submitProposalData = await james.contract.methods.submitProposal(proposal2.applicant, proposal2.tokenTribute, proposal2.bondsRequested, proposal2.details).encodeABI()
         await safeUtils.executeTransaction(lw, gnosisSafe, 'submit proposal to james', [lw.accounts[0], lw.accounts[1]], james.address, 0, submitProposalData, CALL, executor)
 
         const expectedStartingPeriod = (await james.getCurrentPeriod()).toNumber() + 1
@@ -1557,10 +1557,10 @@ contract('James', ([creator, summoner, applicant1, applicant2, processor, delega
         await safeUtils.executeTransaction(lw, gnosisSafe, 'ragequit the guild', [lw.accounts[0], lw.accounts[1]], james.address, 0, ragequitData, CALL, executor)
         const safeMemberDataAfterRagequit = await james.members(gnosisSafe.address)
         assert.equal(safeMemberDataAfterRagequit.exists, true)
-        assert.equal(safeMemberDataAfterRagequit.shares, 0)
+        assert.equal(safeMemberDataAfterRagequit.bonds, 0)
 
         const safeBalanceAfterRagequit = await token.balanceOf(gnosisSafe.address)
-        assert.equal(safeBalanceAfterRagequit, 50) // 100 eth & 2 shares at time of ragequit
+        assert.equal(safeBalanceAfterRagequit, 50) // 100 eth & 2 bonds at time of ragequit
       })
     })
   })

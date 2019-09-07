@@ -66,9 +66,9 @@ task('james-deploy', 'Deploys a new instance of the James DAO')
 task('james-submit-proposal', 'Submits a proposal')
   .addParam('applicant', 'The address of the applicant')
   .addParam('tribute', "The number of token's wei offered as tribute")
-  .addParam('shares', 'The number of shares requested')
+  .addParam('bonds', 'The number of bonds requested')
   .addParam('details', "The proposal's details")
-  .setAction(async ({ applicant, tribute, shares, details }) => {
+  .setAction(async ({ applicant, tribute, bonds, details }) => {
     // Make sure everything is compiled
     await run('compile')
 
@@ -106,7 +106,7 @@ task('james-submit-proposal', 'Submits a proposal')
       }
     }
 
-    const { receipt } = await james.submitProposal(applicant, tribute, shares, details)
+    const { receipt } = await james.submitProposal(applicant, tribute, bonds, details)
     const proposalIndex = receipt.logs[0].args.proposalIndex
 
     console.log('Submitted proposal number', proposalIndex.toString())
@@ -150,9 +150,9 @@ task('james-process-proposal', 'Processes a proposal')
     console.log('Proposal processed')
   })
 
-task('james-ragequit', 'Ragequits, burning some shares and getting tokens back')
-  .addParam('shares', 'The amount of shares to burn')
-  .setAction(async ({ shares }) => {
+task('james-ragequit', 'Ragequits, burning some bonds and getting tokens back')
+  .addParam('bonds', 'The amount of bonds to burn')
+  .setAction(async ({ bonds }) => {
     // Make sure everything is compiled
     await run('compile')
 
@@ -161,8 +161,8 @@ task('james-ragequit', 'Ragequits, burning some shares and getting tokens back')
       return
     }
 
-    await james.ragequit(shares)
-    console.log(`Burn ${shares} shares`)
+    await james.ragequit(bonds)
+    console.log(`Burn ${bonds} bonds`)
   })
 
 task('james-update-delegate', 'Updates your delegate')

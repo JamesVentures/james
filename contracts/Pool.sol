@@ -1,6 +1,6 @@
 // Pool.sol
 // - mints a pool share when someone donates tokens
-// - syncs with James proposal queue to mint shares for grantees
+// - syncs with James proposal queue to mint bonds for grantees
 // - allows donors to withdraw tokens at any time
 
 pragma solidity 0.5.3;
@@ -18,18 +18,18 @@ contract JamesPool {
 
     event Deposit (
         address donor,
-        uint256 sharesMinted,
+        uint256 bondsMinted,
         uint256 tokensDeposited
     );
 
     event Withdraw (
         address donor,
-        uint256 sharesBurned
+        uint256 bondsBurned
     );
 
     event KeeperWithdraw (
         address donor,
-        uint256 sharesBurned,
+        uint256 bondsBurned,
         address keeper
     );
 
@@ -44,18 +44,18 @@ contract JamesPool {
     );
 
     event SharesMinted (
-        uint256 sharesToMint,
+        uint256 bondsToMint,
         address recipient,
         uint256 totalPoolShares
     );
 
     event SharesBurned (
-        uint256 sharesToBurn,
+        uint256 bondsToBurn,
         address recipient,
         uint256 totalPoolShares
     );
 
-    uint256 public totalPoolShares = 0; // the total shares outstanding of the pool
+    uint256 public totalPoolShares = 0; // the total bonds outstanding of the pool
     uint256 public currentProposalIndex = 0; // the james proposal index that this pool has been synced to
 
     James public james; // james contract reference
@@ -63,14 +63,14 @@ contract JamesPool {
 
     bool locked; // prevent re-entrancy
 
-    uint256 constant MAX_NUMBER_OF_SHARES = 10**30; // maximum number of shares that can be minted
+    uint256 constant MAX_NUMBER_OF_SHARES = 10**30; // maximum number of bonds that can be minted
 
     struct Donor {
-        uint256 shares;
+        uint256 bonds;
         mapping (address => bool) keepers;
     }
 
-    // the amount of shares each pool shareholder has
+    // the amount of bonds each pool shareholder has
     mapping (address => Donor) public donors;
 
     modifier active {
@@ -101,13 +101,13 @@ contract JamesPool {
     }
 
     // updates Pool state based on James proposal queue
-    // - we only want to mint shares for grants, which are 0 tribute
-    // - mints pool shares to applicants based on sharesRequested / maxTotalSharesAtYesVote
+    // - we only want to mint bonds for grants, which are 0 tribute
+    // - mints pool bonds to applicants based on bondsRequested / maxTotalSharesAtYesVote
     // - use maxTotalSharesAtYesVote because:
-    //   - cant read shares at the time of proposal processing (womp womp)
-    //   - should be close enough if grant shares are small relative to total shares, which they should be
+    //   - cant read bonds at the time of proposal processing (womp womp)
+    //   - should be close enough if grant bonds are small relative to total bonds, which they should be
     //   - protects pool contributors if many James members ragequit before the proposal is processed by reducing follow on funding
-    //   - e.g. if 50% of James shares ragequit after someone voted yes, the grant proposal would get 50% less follow-on from the pool
+    //   - e.g. if 50% of James bonds ragequit after someone voted yes, the grant proposal would get 50% less follow-on from the pool
     function sync(uint256 toIndex) public active noReentrancy {
         require(
             toIndex <= james.getProposalQueueLength(),
@@ -116,7 +116,7 @@ contract JamesPool {
 
         // declare proposal params
         address applicant;
-        uint256 sharesRequested;
+        uint256 bondsRequested;
         bool processed;
         bool didPass;
         bool aborted;
@@ -127,18 +127,18 @@ contract JamesPool {
 
         while (i < toIndex) {
 
-            (, applicant, sharesRequested, , , , processed, didPass, aborted, tokenTribute, , maxTotalSharesAtYesVote) = james.proposalQueue(i);
+            (, applicant, bondsRequested, , , , processed, didPass, aborted, tokenTribute, , maxTotalSharesAtYesVote) = james.proposalQueue(i);
 
             if (!processed) { break; }
 
-            // passing grant proposal, mint pool shares proportionally on behalf of the applicant
-            if (!aborted && didPass && tokenTribute == 0 && sharesRequested > 0) {
+            // passing grant proposal, mint pool bonds proportionally on behalf of the applicant
+            if (!aborted && didPass && tokenTribute == 0 && bondsRequested > 0) {
                 // This can't revert:
                 //   1. maxTotalSharesAtYesVote > 0, otherwise nobody could have voted.
-                //   2. sharesRequested is <= 10**18 (see James.sol:172), and
+                //   2. bondsRequested is <= 10**18 (see James.sol:172), and
                 //      totalPoolShares <= 10**30, so multiplying them is <= 10**48 and < 2**160
-                uint256 sharesToMint = totalPoolShares.mul(sharesRequested).div(maxTotalSharesAtYesVote); // for a passing proposal, maxTotalSharesAtYesVote is > 0
-                _mintSharesForAddress(sharesToMint, applicant);
+                uint256 bondsToMint = totalPoolShares.mul(bondsRequested).div(maxTotalSharesAtYesVote); // for a passing proposal, maxTotalSharesAtYesVote is > 0
+                _mintSharesForAddress(bondsToMint, applicant);
             }
 
             i++;
@@ -149,47 +149,47 @@ contract JamesPool {
         emit Sync(currentProposalIndex);
     }
 
-    // add tokens to the pool, mint new shares proportionally
+    // add tokens to the pool, mint new bonds proportionally
     function deposit(uint256 tokenAmount) public active noReentrancy {
 
-        uint256 sharesToMint = totalPoolShares.mul(tokenAmount).div(approvedToken.balanceOf(address(this)));
+        uint256 bondsToMint = totalPoolShares.mul(tokenAmount).div(approvedToken.balanceOf(address(this)));
 
         require(
             approvedToken.transferFrom(msg.sender, address(this), tokenAmount),
             "JamesPool: Deposit transfer failed"
         );
 
-        _mintSharesForAddress(sharesToMint, msg.sender);
+        _mintSharesForAddress(bondsToMint, msg.sender);
 
         emit Deposit(
             msg.sender,
-            sharesToMint,
+            bondsToMint,
             tokenAmount
         );
     }
 
-    // burn shares to proportionally withdraw tokens in pool
-    function withdraw(uint256 sharesToBurn) public active noReentrancy {
-        _withdraw(msg.sender, sharesToBurn);
+    // burn bonds to proportionally withdraw tokens in pool
+    function withdraw(uint256 bondsToBurn) public active noReentrancy {
+        _withdraw(msg.sender, bondsToBurn);
 
         emit Withdraw(
             msg.sender,
-            sharesToBurn
+            bondsToBurn
         );
     }
 
-    // keeper burns shares to withdraw on behalf of the donor
-    function keeperWithdraw(uint256 sharesToBurn, address recipient) public active noReentrancy {
+    // keeper burns bonds to withdraw on behalf of the donor
+    function keeperWithdraw(uint256 bondsToBurn, address recipient) public active noReentrancy {
         require(
             donors[recipient].keepers[msg.sender],
             "JamesPool: Sender is not a keeper"
         );
 
-        _withdraw(recipient, sharesToBurn);
+        _withdraw(recipient, bondsToBurn);
 
         emit KeeperWithdraw(
             recipient,
-            sharesToBurn,
+            bondsToBurn,
             msg.sender
         );
     }
@@ -214,34 +214,34 @@ contract JamesPool {
         emit RemoveKeepers(msg.sender, keepersToRemove);
     }
 
-    function _mintSharesForAddress(uint256 sharesToMint, address recipient) internal {
-        totalPoolShares = totalPoolShares.add(sharesToMint);
-        donors[recipient].shares = donors[recipient].shares.add(sharesToMint);
+    function _mintSharesForAddress(uint256 bondsToMint, address recipient) internal {
+        totalPoolShares = totalPoolShares.add(bondsToMint);
+        donors[recipient].bonds = donors[recipient].bonds.add(bondsToMint);
 
         require(
             totalPoolShares <= MAX_NUMBER_OF_SHARES,
-            "JamesPool: Max number of shares exceeded"
+            "JamesPool: Max number of bonds exceeded"
         );
 
         emit SharesMinted(
-            sharesToMint,
+            bondsToMint,
             recipient,
             totalPoolShares
         );
     }
 
-    function _withdraw(address recipient, uint256 sharesToBurn) internal {
+    function _withdraw(address recipient, uint256 bondsToBurn) internal {
         Donor storage donor = donors[recipient];
 
         require(
-            donor.shares >= sharesToBurn,
-            "JamesPool: Not enough shares to burn"
+            donor.bonds >= bondsToBurn,
+            "JamesPool: Not enough bonds to burn"
         );
 
-        uint256 tokensToWithdraw = approvedToken.balanceOf(address(this)).mul(sharesToBurn).div(totalPoolShares);
+        uint256 tokensToWithdraw = approvedToken.balanceOf(address(this)).mul(bondsToBurn).div(totalPoolShares);
 
-        totalPoolShares = totalPoolShares.sub(sharesToBurn);
-        donor.shares = donor.shares.sub(sharesToBurn);
+        totalPoolShares = totalPoolShares.sub(bondsToBurn);
+        donor.bonds = donor.bonds.sub(bondsToBurn);
 
         require(
             approvedToken.transfer(recipient, tokensToWithdraw),
@@ -249,7 +249,7 @@ contract JamesPool {
         );
 
         emit SharesBurned(
-            sharesToBurn,
+            bondsToBurn,
             recipient,
             totalPoolShares
         );
