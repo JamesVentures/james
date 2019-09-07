@@ -93,6 +93,11 @@ contract James {
         _;
     }
 
+    modifier onlyJames() {
+        require(isJames(msg.sender));
+        _;
+    }
+
     /********
     FUNCTIONS
     ********/
@@ -144,6 +149,10 @@ contract James {
     PROPOSAL FUNCTIONS
     *****************/
 
+    function isJames(address _james) public pure returns (bool) {
+        return true;
+    }
+
     function submitProposal(
         address applicant,
         uint256 tokenTribute,
@@ -151,6 +160,7 @@ contract James {
         string memory details
     )
         public
+        onlyJames
         onlyDelegate
     {
         require(applicant != address(0), "James::submitProposal - applicant cannot be 0");
@@ -199,7 +209,7 @@ contract James {
         emit SubmitProposal(proposalIndex, msg.sender, memberAddress, applicant, tokenTribute, sharesRequested);
     }
 
-    function submitVote(uint256 proposalIndex, uint8 uintVote) public onlyDelegate {
+    function submitVote(uint256 proposalIndex, uint8 uintVote) public onlyJames onlyDelegate {
         address memberAddress = memberAddressByDelegateKey[msg.sender];
         Member storage member = members[memberAddress];
 
@@ -239,7 +249,7 @@ contract James {
         emit SubmitVote(proposalIndex, msg.sender, memberAddress, uintVote);
     }
 
-    function processProposal(uint256 proposalIndex) public {
+    function processProposal(uint256 proposalIndex) public onlyJames {
         require(proposalIndex < proposalQueue.length, "James::processProposal - proposal does not exist");
         Proposal storage proposal = proposalQueue[proposalIndex];
 
@@ -320,7 +330,7 @@ contract James {
         );
     }
 
-    function ragequit(uint256 sharesToBurn) public onlyMember {
+    function ragequit(uint256 sharesToBurn) public onlyJames onlyMember {
         uint256 initialTotalShares = totalShares;
 
         Member storage member = members[msg.sender];
@@ -342,7 +352,7 @@ contract James {
         emit Ragequit(msg.sender, sharesToBurn);
     }
 
-    function abort(uint256 proposalIndex) public {
+    function abort(uint256 proposalIndex) public onlyJames {
         require(proposalIndex < proposalQueue.length, "James::abort - proposal does not exist");
         Proposal storage proposal = proposalQueue[proposalIndex];
 
@@ -363,7 +373,7 @@ contract James {
         emit Abort(proposalIndex, msg.sender);
     }
 
-    function updateDelegateKey(address newDelegateKey) public onlyMember {
+    function updateDelegateKey(address newDelegateKey) public onlyJames onlyMember {
         require(newDelegateKey != address(0), "James::updateDelegateKey - newDelegateKey cannot be 0");
 
         // skip checks if member is setting the delegate key to their member address
@@ -388,25 +398,25 @@ contract James {
         return x >= y ? x : y;
     }
 
-    function getCurrentPeriod() public view returns (uint256) {
+    function getCurrentPeriod() public onlyJames view returns (uint256) {
         return now.sub(summoningTime).div(periodDuration);
     }
 
-    function getProposalQueueLength() public view returns (uint256) {
+    function getProposalQueueLength() public onlyJames view returns (uint256) {
         return proposalQueue.length;
     }
 
     // can only ragequit if the latest proposal you voted YES on has been processed
-    function canRagequit(uint256 highestIndexYesVote) public view returns (bool) {
+    function canRagequit(uint256 highestIndexYesVote) public onlyJames view returns (bool) {
         require(highestIndexYesVote < proposalQueue.length, "James::canRagequit - proposal does not exist");
         return proposalQueue[highestIndexYesVote].processed;
     }
 
-    function hasVotingPeriodExpired(uint256 startingPeriod) public view returns (bool) {
+    function hasVotingPeriodExpired(uint256 startingPeriod) public onlyJames view returns (bool) {
         return getCurrentPeriod() >= startingPeriod.add(votingPeriodLength);
     }
 
-    function getMemberProposalVote(address memberAddress, uint256 proposalIndex) public view returns (Vote) {
+    function getMemberProposalVote(address memberAddress, uint256 proposalIndex) public onlyJames view returns (Vote) {
         require(members[memberAddress].exists, "James::getMemberProposalVote - member doesn't exist");
         require(proposalIndex < proposalQueue.length, "James::getMemberProposalVote - proposal doesn't exist");
         return proposalQueue[proposalIndex].votesByMember[memberAddress];
