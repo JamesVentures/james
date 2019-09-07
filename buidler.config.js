@@ -1,11 +1,14 @@
+/* global usePlugin */
 usePlugin('@nomiclabs/buidler-truffle5')
 
 require('./scripts/james-tasks')
 require('./scripts/pool-tasks')
 
-const INFURA_API_KEY = ''
-const MAINNET_PRIVATE_KEY = ''
-const ROPSTEN_PRIVATE_KEY = ''
+require('dotenv').config()
+
+const INFURA_API_KEY = process.env.INFURA_API_KEY
+const MAINNET_PRIVATE_KEY = process.env.MAINNET_PRIVATE_KEY
+const ROPSTEN_PRIVATE_KEY = process.env.ROPSTEN_PRIVATE_KEY
 
 module.exports = {
   networks: {
@@ -19,16 +22,16 @@ module.exports = {
       url: `https://ropsten.infura.io/v3/${INFURA_API_KEY}`,
       accounts: [ ROPSTEN_PRIVATE_KEY ],
       deployedContracts: {
-        james: "",
-        pool: ""
+        james: '',
+        pool: ''
       }
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
       accounts: [ MAINNET_PRIVATE_KEY ],
       deployedContracts: {
-        james: '0x1fd169A4f5c59ACf79d0Fd5d91D1201EF1Bce9f1', // The original James
-        pool: ""
+        james: '', // The original James
+        pool: ''
       }
     },
     coverage: {
