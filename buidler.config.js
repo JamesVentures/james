@@ -9,6 +9,7 @@ require('dotenv').config()
 const INFURA_API_KEY = process.env.INFURA_API_KEY
 const MAINNET_PRIVATE_KEY = process.env.MAINNET_PRIVATE_KEY
 const ROPSTEN_PRIVATE_KEY = process.env.ROPSTEN_PRIVATE_KEY
+const ROPSTEN_JAMES = process.env.ROPSTEN_JAMES
 
 module.exports = {
   networks: {
@@ -22,16 +23,17 @@ module.exports = {
       url: `https://ropsten.infura.io/v3/${INFURA_API_KEY}`,
       accounts: [ ROPSTEN_PRIVATE_KEY ],
       deployedContracts: {
-        james: '',
+        james: ROPSTEN_JAMES,
         pool: ''
       }
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
       accounts: [ MAINNET_PRIVATE_KEY ],
+      gasPrice: 12000000000,
       deployedContracts: {
-        james: '', // The original James
-        pool: ''
+        james: '0x77b53ad9d111029d1f16f4f19769846384bda49b', // The original James
+        pool: '0x1A994dDb50FE45c485a22F1ea0BEB29Fcfc02B66'
       }
     },
     coverage: {
