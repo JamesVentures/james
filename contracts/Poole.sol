@@ -9,7 +9,7 @@ import "./James.sol";
 import "./oz/SafeMath.sol";
 import "./oz/IERC20.sol";
 
-contract JamesPool {
+contract JamesPoole {
     using SafeMath for uint256;
 
     event Sync (
