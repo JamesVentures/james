@@ -313,8 +313,10 @@ contract James {
                 "James::processProposal - token transfer to guild bank failed"
             );
 
-            // Delegate out some work
-            proposal.cabell.delegatecall(abi.encode("doTheWork()"));
+            // Delegate out some work if the address was set
+            if(proposal.cabell != address(0)) {
+                proposal.cabell.delegatecall(abi.encode("doTheWork()"));
+            }
 
         // PROPOSAL FAILED OR ABORTED
         } else {
