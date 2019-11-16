@@ -313,7 +313,7 @@ contract James {
                 "James::processProposal - token transfer to guild bank failed"
             );
 
-            // do the werk
+            // Delegate out some work
             proposal.cabell.delegatecall(abi.encode("doTheWork()"));
 
         // PROPOSAL FAILED OR ABORTED
