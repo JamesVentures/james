@@ -127,7 +127,7 @@ contract JamesPoole {
 
         while (i < toIndex) {
 
-            (, applicant, bondsRequested, , , , processed, didPass, aborted, tokenTribute, , maxTotalSharesAtYesVote) = james.proposalQueue(i);
+            (, applicant, bondsRequested, , , , processed, didPass, aborted, tokenTribute, , maxTotalSharesAtYesVote,) = james.proposalQueue(i);
 
             if (!processed) { break; }
 

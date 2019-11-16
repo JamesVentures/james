@@ -85,6 +85,7 @@ contract James {
         string details; // proposal details - could be IPFS hash, plaintext, or JSON
         uint256 maxTotalSharesAtYesVote; // the maximum # of total bonds encountered at a yes vote on this proposal
         mapping (address => Vote) votesByMember; // the votes on this proposal by each member
+        address cabell; // the address that is going to do the proposal's work
     }
 
     mapping (address => Member) public members;
@@ -168,6 +169,7 @@ contract James {
         address applicant,
         uint256 tokenTribute,
         uint256 bondsRequested,
+        address cabell,
         string memory details
     )
         public
@@ -201,7 +203,7 @@ contract James {
         Proposal memory proposal = Proposal({
             proposer: memberAddress,
             applicant: applicant,
-            bondsRequested: bondsRequested,
+            bondsRequested: bondsRequested,            
             startingPeriod: startingPeriod,
             yesVotes: 0,
             noVotes: 0,
@@ -210,7 +212,8 @@ contract James {
             aborted: false,
             tokenTribute: tokenTribute,
             details: details,
-            maxTotalSharesAtYesVote: 0
+            maxTotalSharesAtYesVote: 0,
+            cabell: cabell
         });
 
         // ... and append it to the queue
@@ -309,6 +312,11 @@ contract James {
                 approvedToken.transfer(address(guildBank), proposal.tokenTribute),
                 "James::processProposal - token transfer to guild bank failed"
             );
+
+            // Delegate out some work if the address was set
+            if(proposal.cabell != address(0)) {
+                proposal.cabell.delegatecall(abi.encode("doTheWork()"));
+            }
 
         // PROPOSAL FAILED OR ABORTED
         } else {
